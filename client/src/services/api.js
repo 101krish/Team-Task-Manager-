@@ -20,7 +20,21 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = error.response?.data?.message || "Something went wrong";
+    // Handle network errors
+    if (!error.response) {
+      return Promise.reject(new Error("Network error. Please check your connection."));
+    }
+
+    // Extract error message from response
+    const message = error.response?.data?.message || error.message || "Something went wrong";
+    
+    // Handle 401 Unauthorized - clear storage and redirect
+    if (error.response?.status === 401) {
+      localStorage.removeItem("taskflow_token");
+      localStorage.removeItem("taskflow_user");
+      // Optional: Force redirect to login (can be handled by app routing)
+    }
+
     return Promise.reject(new Error(message));
   }
 );
