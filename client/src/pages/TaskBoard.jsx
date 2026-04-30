@@ -144,14 +144,16 @@ export default function TaskBoard() {
             <span className="material-symbols-outlined text-[18px]">filter_list</span>
             Filters
           </button>
-          <button
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-label-md text-label-md text-white transition-colors hover:bg-primary-container"
-            type="button"
-            onClick={() => setModalOpen(true)}
-          >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            Add Task
-          </button>
+          {user?.role === "admin" && (
+            <button
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-label-md text-label-md text-white transition-colors hover:bg-primary-container"
+              type="button"
+              onClick={() => setModalOpen(true)}
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              Add Task
+            </button>
+          )}
         </div>
       </div>
 
@@ -221,17 +223,19 @@ export default function TaskBoard() {
                   currentUserId={user?._id}
                 />
               ))}
-              <button
-                className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-200 py-3 text-label-md text-on-surface-variant transition-all hover:border-primary hover:text-primary"
-                type="button"
-                onClick={() => {
-                  setForm((current) => ({ ...current, status: column.key }));
-                  setModalOpen(true);
-                }}
-              >
-                <span className="material-symbols-outlined">add</span>
-                Add Task
-              </button>
+              {user?.role === "admin" && (
+                <button
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-200 py-3 text-label-md text-on-surface-variant transition-all hover:border-primary hover:text-primary"
+                  type="button"
+                  onClick={() => {
+                    setForm((current) => ({ ...current, status: column.key }));
+                    setModalOpen(true);
+                  }}
+                >
+                  <span className="material-symbols-outlined">add</span>
+                  Add Task
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -239,7 +243,7 @@ export default function TaskBoard() {
         </div>
       </div>
 
-      {modalOpen ? (
+      {modalOpen && user?.role === "admin" ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-gutter">
           <div className="w-full max-w-lg rounded-xl border border-outline-variant bg-white p-xl shadow-2xl">
             <div className="mb-lg flex items-center justify-between">
