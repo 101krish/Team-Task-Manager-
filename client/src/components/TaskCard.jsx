@@ -69,8 +69,11 @@ export default function TaskCard({ task, onStatusChange, onDelete, updating, del
             </span>
           </div>
           {task.assignedTo ? (
-            <div className={`flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 text-[10px] font-bold ${isAssignedToCurrentUser ? "border-indigo-400 bg-indigo-100 text-indigo-700" : "border-slate-100 bg-primary-fixed text-primary"}`} title={task.assignedTo.name}>
-              {initials || "U"}
+            <div className="flex items-center gap-2">
+              <div className={`flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 text-[10px] font-bold ${isAssignedToCurrentUser ? "border-indigo-400 bg-indigo-100 text-indigo-700" : "border-slate-100 bg-primary-fixed text-primary"}`} title={task.assignedTo.name}>
+                {initials || "U"}
+              </div>
+              <span className="text-label-sm text-on-surface-variant">{task.assignedTo.name}</span>
             </div>
           ) : (
             <span className="text-label-sm text-on-surface-variant">Unassigned</span>

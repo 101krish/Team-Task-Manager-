@@ -71,7 +71,12 @@ export const createTask = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Project not found or access denied" });
     }
 
-    // Validate assignedTo is a project member
+    // Only admins can create tasks
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Only team admins can create tasks" });
+    }
+
+    // Validate assignedTo is valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
       return res.status(400).json({ success: false, message: "Assigned user ID is invalid" });
     }
@@ -81,6 +86,12 @@ export const createTask = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Assigned user does not exist" });
     }
 
+    // Validate assigned user belongs to same team
+    if (assignee.teamId?.toString() !== req.user.teamId?.toString()) {
+      return res.status(403).json({ success: false, message: "Assigned user must belong to same team" });
+    }
+
+    // Validate assignee is a project member
     const isProjectMember =
       project.members.some((member) => member.toString() === assignee._id.toString()) ||
       project.createdBy.toString() === assignee._id.toString();

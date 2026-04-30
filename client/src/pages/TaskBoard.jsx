@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import StateMessage from "../components/StateMessage";
 import TaskCard from "../components/TaskCard";
+import MembersSection from "../components/MembersSection";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
@@ -18,6 +19,7 @@ export default function TaskBoard() {
   const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -31,10 +33,15 @@ export default function TaskBoard() {
   const loadTasks = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/tasks/${projectId}`);
-      setProject(response.data.data.project);
-      setTasks(response.data.data.tasks);
-      setProgress(response.data.data.progress);
+      const [tasksResponse, membersResponse] = await Promise.all([
+        api.get(`/tasks/${projectId}`),
+        api.get("/teams/members")
+      ]);
+      
+      setProject(tasksResponse.data.data.project);
+      setTasks(tasksResponse.data.data.tasks);
+      setProgress(tasksResponse.data.data.progress);
+      setTeamMembers(membersResponse.data.data.members || []);
       setError("");
     } catch (err) {
       setError(err.message);
@@ -183,8 +190,13 @@ export default function TaskBoard() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-xl pb-12 lg:grid-cols-3">
-        {columns.map((column) => (
+      <div className="grid grid-cols-1 gap-xl pb-12 lg:grid-cols-5">
+        <div className="lg:col-span-1">
+          <MembersSection teamId={user?.teamId} />
+        </div>
+        <div className="lg:col-span-4">
+          <div className="grid grid-cols-1 gap-xl lg:grid-cols-3">
+            {columns.map((column) => (
           <div className="flex flex-col gap-md" key={column.key}>
             <div className="flex items-center justify-between px-xs">
               <div className="flex items-center gap-sm">
@@ -223,6 +235,8 @@ export default function TaskBoard() {
             </div>
           </div>
         ))}
+          </div>
+        </div>
       </div>
 
       {modalOpen ? (
@@ -280,26 +294,30 @@ export default function TaskBoard() {
                     ))}
                   </select>
                 </div>
-                {project?.createdBy?._id === user?._id && (
-                  <div>
-                    <label className="mb-xs block text-label-md text-on-surface-variant" htmlFor="task-assignee">
-                      Assign To
-                    </label>
-                    <select
-                      className="w-full rounded-lg border border-outline-variant bg-surface-bright px-md py-sm font-body-md text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
-                      id="task-assignee"
-                      value={form.assignedTo}
-                      onChange={(event) => setForm((current) => ({ ...current, assignedTo: event.target.value }))}
-                    >
-                      <option value="">Assign to me</option>
-                      {(project?.members || []).map((member) => (
+                <div>
+                  <label className="mb-xs block text-label-md text-on-surface-variant" htmlFor="task-assignee">
+                    Assign To
+                  </label>
+                  <select
+                    className="w-full rounded-lg border border-outline-variant bg-surface-bright px-md py-sm font-body-md text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
+                    id="task-assignee"
+                    value={form.assignedTo}
+                    onChange={(event) => setForm((current) => ({ ...current, assignedTo: event.target.value }))}
+                    required
+                    disabled={user?.role === "member"}
+                  >
+                    <option value="">{user?.role === "admin" ? "Select a team member" : "Assign to me"}</option>
+                    {user?.role === "admin" ? (
+                      teamMembers.map((member) => (
                         <option key={member._id} value={member._id}>
-                          {member.name}
+                          {member.name} {member._id === user?._id ? "(You)" : ""}
                         </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                      ))
+                    ) : (
+                      <option value={user?._id}>{user?.name}</option>
+                    )}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="mb-xs block text-label-md text-on-surface-variant" htmlFor="task-due-date">

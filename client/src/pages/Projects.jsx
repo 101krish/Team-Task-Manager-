@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ProjectCard from "../components/ProjectCard";
 import StateMessage from "../components/StateMessage";
+import MembersSection from "../components/MembersSection";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 
@@ -139,10 +140,17 @@ export default function Projects() {
       ) : null}
 
       {!loading && !error && projects.length ? (
-        <div className="grid grid-cols-1 gap-xl md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project, index) => (
-            <ProjectCard key={project._id} project={project} featured={index === 0} onEdit={() => setSelectedProject(project)} onDelete={() => setDeleteConfirm(project._id)} />
-          ))}
+        <div className="grid grid-cols-1 gap-xl lg:grid-cols-4">
+          <div className="lg:col-span-1">
+            <MembersSection teamId={user?.teamId} />
+          </div>
+          <div className="lg:col-span-3">
+            <div className="grid grid-cols-1 gap-xl md:grid-cols-2">
+              {projects.map((project, index) => (
+                <ProjectCard key={project._id} project={project} featured={index === 0} onEdit={() => setSelectedProject(project)} onDelete={() => setDeleteConfirm(project._id)} />
+              ))}
+            </div>
+          </div>
         </div>
       ) : null}
 
