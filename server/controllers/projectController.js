@@ -14,8 +14,15 @@ const isProjectCreator = (project, user) =>
 
 export const getProjects = async (req, res, next) => {
   try {
-    // Users see only projects they're part of
-    const filter = { $or: [{ members: req.user._id }, { createdBy: req.user._id }] };
+    // Users see only projects from their team
+    if (!req.user.teamId) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const filter = { 
+      teamId: req.user.teamId,
+      $or: [{ members: req.user._id }, { createdBy: req.user._id }]
+    };
 
     const projects = await Project.find(filter)
       .populate("members", "name email role")
@@ -56,6 +63,16 @@ export const createProject = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Project name is required" });
     }
 
+    // Only admins can create projects
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Only team admins can create projects" });
+    }
+
+    // User must have a team
+    if (!req.user.teamId) {
+      return res.status(400).json({ success: false, message: "User must belong to a team to create projects" });
+    }
+
     // Creator is automatically added to members
     const uniqueMemberIds = [...new Set([req.user._id.toString(), ...members])];
     const invalidMemberId = uniqueMemberIds.find((id) => !mongoose.Types.ObjectId.isValid(id));
@@ -72,6 +89,7 @@ export const createProject = async (req, res, next) => {
     const project = await Project.create({
       name,
       description,
+      teamId: req.user.teamId,
       members: uniqueMemberIds,
       createdBy: req.user._id
     });
@@ -285,5 +303,9 @@ export const assertProjectAccess = async (projectId, user) => {
   if (!mongoose.Types.ObjectId.isValid(projectId)) return null;
   const project = await Project.findById(projectId);
   if (!project || !canAccessProject(project, user)) return null;
+  
+  // Ensure project belongs to user's team
+  if (project.teamId?.toString() !== user.teamId?.toString()) return null;
+  
   return project;
 };

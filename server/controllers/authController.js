@@ -7,7 +7,9 @@ const userPayload = (user) => ({
   id: user._id,
   name: user.name,
   email: user.email,
-  role: user.role
+  role: user.role,
+  teamId: user.teamId,
+  hasCompletedSetup: user.hasCompletedSetup
 });
 
 const validateEmail = (email) => {
@@ -44,9 +46,8 @@ export const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: "Email is already registered" });
     }
 
-    const adminsCount = await User.countDocuments({ role: "admin" });
-    const role = adminsCount === 0 ? "admin" : "member";
-    const user = await User.create({ name: trimmedName, email: trimmedEmail, password, role });
+    // Don't auto-assign role - user will choose during setup
+    const user = await User.create({ name: trimmedName, email: trimmedEmail, password, role: null, hasCompletedSetup: false });
     const token = signToken(user._id);
 
     res.status(201).json({ success: true, data: { user: userPayload(user), token } });

@@ -14,8 +14,11 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [team, setTeam] = useState(null);
+  const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [copyFeedback, setCopyFeedback] = useState("");
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -29,6 +32,24 @@ export default function Dashboard() {
         // All users see all tasks in their projects (already filtered by backend)
         const allTasks = taskResponses.flatMap((response) => response.data.data.tasks);
         setTasks(allTasks);
+
+        // Fetch team info
+        try {
+          const teamResponse = await api.get("/teams");
+          setTeam(teamResponse.data.data.team);
+        } catch (err) {
+          // Team might not be loaded yet
+        }
+
+        // For admins, fetch invite code
+        if (user?.role === "admin") {
+          try {
+            const codeResponse = await api.get("/teams/invite-code");
+            setInviteCode(codeResponse.data.data.inviteCode);
+          } catch (err) {
+            // Invite code might not be available
+          }
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -37,7 +58,7 @@ export default function Dashboard() {
     };
 
     loadDashboard();
-  }, []);
+  }, [user?.role]);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -51,6 +72,12 @@ export default function Dashboard() {
 
   const overdueTasks = tasks.filter((task) => task.status !== "done" && task.dueDate && new Date(task.dueDate) < new Date()).slice(0, 4);
 
+  const copyInviteCode = () => {
+    navigator.clipboard.writeText(inviteCode);
+    setCopyFeedback("Copied!");
+    setTimeout(() => setCopyFeedback(""), 2000);
+  };
+
   if (loading) return <StateMessage title="Loading dashboard" message="Fetching project and task activity..." />;
   if (error) return <StateMessage title="Dashboard unavailable" message={error} tone="error" />;
 
@@ -60,6 +87,31 @@ export default function Dashboard() {
         <h1 className="font-h1 text-h1 text-on-surface">Team Overview</h1>
         <p className="font-body-lg text-body-lg text-on-surface-variant">Welcome back, {user?.name}. Here's what's happening across your projects today.</p>
       </header>
+
+      {user?.role === "admin" && inviteCode && (
+        <div className="mb-xl rounded-xl border border-outline-variant bg-primary-container/20 p-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="mb-xs font-h3 text-h3 text-on-surface">Share Team Access</h3>
+              <p className="mb-md text-body-md text-on-surface-variant">
+                Share this code with team members so they can join your team
+              </p>
+              <div className="flex items-center gap-md">
+                <code className="rounded-lg bg-white px-lg py-md font-mono text-h2 font-bold text-primary">
+                  {inviteCode}
+                </code>
+                <button
+                  onClick={copyInviteCode}
+                  className="rounded-lg bg-primary px-md py-md text-white transition-all hover:bg-primary-container"
+                >
+                  <span className="material-symbols-outlined">content_copy</span>
+                </button>
+                {copyFeedback && <span className="text-label-sm text-primary">{copyFeedback}</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="mb-xl grid grid-cols-1 gap-md md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => (
           <div

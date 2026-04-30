@@ -22,6 +22,11 @@ export const AuthProvider = ({ children }) => {
     setUser(payload.user);
   };
 
+  const updateUser = (userData) => {
+    localStorage.setItem("taskflow_user", JSON.stringify(userData));
+    setUser(userData);
+  };
+
   const login = async (credentials) => {
     const response = await api.post("/auth/login", credentials);
     persistSession(response.data.data);
@@ -48,7 +53,8 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated: Boolean(token),
       login,
       register,
-      logout
+      logout,
+      updateUser
     }),
     [token, user]
   );

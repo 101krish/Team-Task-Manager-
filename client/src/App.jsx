@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Projects from "./pages/Projects";
 import Register from "./pages/Register";
 import TaskBoard from "./pages/TaskBoard";
+import ChooseSetup from "./pages/ChooseSetup";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -34,6 +35,14 @@ export default function App() {
           <PublicRoute>
             <Register />
           </PublicRoute>
+        }
+      />
+      <Route
+        path="/setup"
+        element={
+          <ProtectedRoute>
+            <ChooseSetup />
+          </ProtectedRoute>
         }
       />
       <Route

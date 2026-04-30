@@ -119,14 +119,16 @@ export default function Projects() {
             <span className="material-symbols-outlined text-sm">filter_list</span>
             Filter
           </button>
-          <button
-            className="flex items-center gap-2 rounded-lg bg-primary px-lg py-sm font-semibold text-label-md text-on-primary shadow-sm transition-all hover:opacity-90 active:scale-95"
-            type="button"
-            onClick={() => setModalOpen(true)}
-          >
-            <span className="material-symbols-outlined text-sm">add</span>
-            Create New Project
-          </button>
+          {user?.role === "admin" && (
+            <button
+              className="flex items-center gap-2 rounded-lg bg-primary px-lg py-sm font-semibold text-label-md text-on-primary shadow-sm transition-all hover:opacity-90 active:scale-95"
+              type="button"
+              onClick={() => setModalOpen(true)}
+            >
+              <span className="material-symbols-outlined text-sm">add</span>
+              Create New Project
+            </button>
+          )}
         </div>
       </header>
 
