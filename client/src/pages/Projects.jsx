@@ -189,7 +189,7 @@ export default function Projects() {
                   Project
                 </label>
                 <select
-                  className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                  className="w-full rounded-lg border border-outline-variant bg-surface-bright px-md py-sm font-body-md text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
                   id="team-project"
                   value={teamProjectId}
                   onChange={(event) => selectTeamProject(event.target.value)}
@@ -245,9 +245,10 @@ export default function Projects() {
                   Project name
                 </label>
                 <input
-                  className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                  className="w-full rounded-lg border border-outline-variant bg-surface-bright px-md py-sm font-body-md text-on-surface placeholder:text-outline focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
                   id="project-name"
                   required
+                  placeholder="Enter project name"
                   value={form.name}
                   onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
                 />
@@ -257,9 +258,10 @@ export default function Projects() {
                   Description
                 </label>
                 <textarea
-                  className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                  className="w-full rounded-lg border border-outline-variant bg-surface-bright px-md py-sm font-body-md text-on-surface placeholder:text-outline focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
                   id="project-description"
                   rows="4"
+                  placeholder="Add project details..."
                   value={form.description}
                   onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                 />

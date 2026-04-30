@@ -22,6 +22,7 @@ export default function TaskBoard() {
   const [form, setForm] = useState(initialTaskForm);
   const [saving, setSaving] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState("");
+  const [deletingTaskId, setDeletingTaskId] = useState("");
   const [formError, setFormError] = useState("");
 
   const loadTasks = async () => {
@@ -60,6 +61,20 @@ export default function TaskBoard() {
       setError(err.message);
     } finally {
       setUpdatingTaskId("");
+    }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (!confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
+    
+    setDeletingTaskId(taskId);
+    try {
+      await api.delete(`/tasks/${taskId}`);
+      setTasks((current) => current.filter((task) => task._id !== taskId));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingTaskId("");
     }
   };
 
@@ -151,7 +166,7 @@ export default function TaskBoard() {
             </div>
             <div className="space-y-md">
               {groupedTasks[column.key]?.map((task) => (
-                <TaskCard key={task._id} task={task} onStatusChange={handleStatusChange} updating={updatingTaskId === task._id} />
+                <TaskCard key={task._id} task={task} onStatusChange={handleStatusChange} onDelete={handleDeleteTask} updating={updatingTaskId === task._id} deleting={deletingTaskId === task._id} />
               ))}
               <button
                 className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-200 py-3 text-label-md text-on-surface-variant transition-all hover:border-primary hover:text-primary"
@@ -185,9 +200,10 @@ export default function TaskBoard() {
                   Title
                 </label>
                 <input
-                  className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                  className="w-full rounded-lg border border-outline-variant bg-surface-bright px-md py-sm font-body-md text-on-surface placeholder:text-outline focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
                   id="task-title"
                   required
+                  placeholder="Enter task title"
                   value={form.title}
                   onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
                 />
@@ -197,9 +213,10 @@ export default function TaskBoard() {
                   Description
                 </label>
                 <textarea
-                  className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                  className="w-full rounded-lg border border-outline-variant bg-surface-bright px-md py-sm font-body-md text-on-surface placeholder:text-outline focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
                   id="task-description"
                   rows="3"
+                  placeholder="Add task details..."
                   value={form.description}
                   onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                 />
@@ -210,7 +227,7 @@ export default function TaskBoard() {
                     Status
                   </label>
                   <select
-                    className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                    className="w-full rounded-lg border border-outline-variant bg-surface-bright px-md py-sm font-body-md text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
                     id="task-status"
                     value={form.status}
                     onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
@@ -227,7 +244,7 @@ export default function TaskBoard() {
                     Assignee
                   </label>
                   <select
-                    className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                    className="w-full rounded-lg border border-outline-variant bg-surface-bright px-md py-sm font-body-md text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
                     id="task-assignee"
                     value={form.assignedTo}
                     onChange={(event) => setForm((current) => ({ ...current, assignedTo: event.target.value }))}
@@ -246,7 +263,7 @@ export default function TaskBoard() {
                   Due date
                 </label>
                 <input
-                  className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                  className="w-full rounded-lg border border-outline-variant bg-surface-bright px-md py-sm font-body-md text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
                   id="task-due-date"
                   type="date"
                   value={form.dueDate}

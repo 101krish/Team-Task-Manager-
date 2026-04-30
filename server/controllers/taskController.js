@@ -120,3 +120,28 @@ export const updateTask = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteTask = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Task ID is invalid" });
+    }
+
+    const task = await Task.findById(id);
+    if (!task) {
+      return res.status(404).json({ success: false, message: "Task not found" });
+    }
+
+    const project = await assertProjectAccess(task.projectId.toString(), req.user);
+    if (!project) {
+      return res.status(403).json({ success: false, message: "Access denied for this task" });
+    }
+
+    await Task.findByIdAndDelete(id);
+    res.json({ success: true, message: "Task deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};

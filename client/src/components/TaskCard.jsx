@@ -22,7 +22,7 @@ const priorityStyles = {
   normal: "bg-blue-100 text-blue-800"
 };
 
-export default function TaskCard({ task, onStatusChange, updating }) {
+export default function TaskCard({ task, onStatusChange, onDelete, updating, deleting }) {
   const isDone = task.status === "done";
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !isDone;
   const initials = task.assignedTo?.name
@@ -75,7 +75,7 @@ export default function TaskCard({ task, onStatusChange, updating }) {
             key={status}
             className="rounded-lg border border-outline-variant px-3 py-1 text-label-sm font-semibold text-on-surface-variant transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
             type="button"
-            disabled={updating}
+            disabled={updating || deleting}
             onClick={() => onStatusChange(task._id, status)}
             title={`Move to ${statusLabels[status]}`}
           >
@@ -88,6 +88,23 @@ export default function TaskCard({ task, onStatusChange, updating }) {
             )}
           </button>
         ))}
+        {onDelete && (
+          <button
+            className="rounded-lg border border-red-200 px-3 py-1 text-label-sm font-semibold text-red-600 transition-colors hover:border-red-400 hover:bg-red-50 disabled:opacity-60"
+            type="button"
+            disabled={updating || deleting}
+            onClick={() => onDelete(task._id)}
+            title="Delete task"
+          >
+            {deleting ? (
+              <span className="material-symbols-outlined text-xs">hourglass_empty</span>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-xs">delete</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

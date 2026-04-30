@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 const placeholderByPath = {
@@ -9,6 +10,7 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const initials = user?.name
     ?.split(" ")
     .map((part) => part[0])
@@ -18,6 +20,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     logout();
+    setDropdownOpen(false);
     navigate("/login");
   };
 
@@ -42,10 +45,15 @@ export default function Navbar() {
           <span className="material-symbols-outlined">help</span>
         </button>
         <div className="group relative">
-          <button className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-primary text-xs font-bold text-white hover:bg-primary-container transition-colors" type="button" title={user?.email}>
+          <button 
+            className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-primary text-xs font-bold text-white hover:bg-primary-container transition-colors" 
+            type="button" 
+            title={user?.email}
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+          >
             {initials || "TF"}
           </button>
-          <div className="absolute right-0 mt-2 hidden w-48 rounded-lg border border-slate-200 bg-white shadow-lg group-hover:block">
+          <div className={`absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-lg ${dropdownOpen ? 'block' : 'hidden'}`}>
             <div className="border-b border-slate-200 px-4 py-3">
               <p className="text-sm font-semibold text-slate-900">{user?.name}</p>
               <p className="text-xs text-slate-500">{user?.email}</p>
