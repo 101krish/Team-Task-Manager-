@@ -324,31 +324,6 @@ export default function TaskBoard() {
   );
 }
 
-  useEffect(() => {
-    loadTasks();
-  }, [projectId]);
-
-  const groupedTasks = useMemo(
-    () =>
-      columns.reduce((acc, column) => {
-        acc[column.key] = tasks.filter((task) => task.status === column.key);
-        return acc;
-      }, {}),
-    [tasks]
-  );
-
-  const handleStatusChange = async (taskId, status) => {
-    setUpdatingTaskId(taskId);
-    try {
-      const response = await api.put(`/tasks/${taskId}`, { status });
-      setTasks((current) => current.map((task) => (task._id === taskId ? response.data.data : task)));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setUpdatingTaskId("");
-    }
-  };
-
   const handleDeleteTask = async (taskId) => {
     if (!confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
     
@@ -564,4 +539,4 @@ export default function TaskBoard() {
       ) : null}
     </>
   );
-}
+
