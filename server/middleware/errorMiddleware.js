@@ -27,13 +27,21 @@ export const errorHandler = (err, req, res, next) => {
     message = "Invalid ID format";
   }
 
-  // Log error in development
+  // Log error in development and production
   if (process.env.NODE_ENV !== "production") {
-    console.error("Error:", err);
+    console.error("[Error]", {
+      status: statusCode,
+      message: err.message,
+      stack: err.stack
+    });
+  } else {
+    // Log errors in production but don't expose stack trace
+    console.error(`[Error] [${new Date().toISOString()}] ${statusCode}: ${message}`);
   }
 
   res.status(statusCode).json({
     success: false,
-    message
+    message,
+    ...(process.env.NODE_ENV !== "production" && { stack: err.stack })
   });
 };
