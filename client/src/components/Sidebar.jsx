@@ -7,7 +7,7 @@ const links = [
 ];
 
 export default function Sidebar() {
-  const { logout, user, isAdmin } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -45,11 +45,9 @@ export default function Sidebar() {
       </nav>
       <div className="px-6 py-4">
         <button
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 font-semibold text-white transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 font-semibold text-white transition-all hover:bg-primary-container"
           type="button"
-          disabled={!isAdmin}
           onClick={() => navigate("/projects")}
-          title={isAdmin ? "Create a project" : "Only admins can create projects"}
         >
           <span className="material-symbols-outlined text-sm">add</span>
           New Project

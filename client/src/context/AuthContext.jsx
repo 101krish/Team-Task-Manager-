@@ -46,7 +46,6 @@ export const AuthProvider = ({ children }) => {
       token,
       user,
       isAuthenticated: Boolean(token),
-      isAdmin: user?.role === "admin",
       login,
       register,
       logout

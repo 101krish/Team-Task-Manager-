@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const statusStyles = {
   Active: "bg-emerald-100 text-emerald-800",
@@ -6,10 +7,19 @@ const statusStyles = {
   Empty: "bg-slate-100 text-slate-700"
 };
 
-export default function ProjectCard({ project, featured = false }) {
+export default function ProjectCard({ project, featured = false, onEdit, onDelete }) {
+  const { user } = useAuth();
   const memberCount = project.members?.length || 0;
   const progress = project.progress || 0;
   const status = project.totalTasks ? "Active" : "Planning";
+  
+  // Check if current user is the project owner
+  const isOwner = project.createdBy?._id === user?._id;
+
+  const handleActionClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   return (
     <Link
@@ -23,7 +33,37 @@ export default function ProjectCard({ project, featured = false }) {
           <span className={`rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${statusStyles[status] || statusStyles.Empty}`}>
             {status}
           </span>
-          <span className="material-symbols-outlined text-slate-400 transition-colors group-hover:text-slate-600">more_horiz</span>
+          {isOwner && (
+            <div className="flex gap-1" onClick={handleActionClick}>
+              <button
+                className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEdit?.();
+                }}
+                title="Edit project members"
+              >
+                <span className="material-symbols-outlined text-sm">edit</span>
+              </button>
+              <button
+                className="rounded p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
+                title="Delete project"
+              >
+                <span className="material-symbols-outlined text-sm">delete</span>
+              </button>
+            </div>
+          )}
+          {!isOwner && (
+            <span className="material-symbols-outlined text-slate-400 transition-colors group-hover:text-slate-600">folder_shared</span>
+          )}
         </div>
         <h3 className={`${featured ? "font-h2 text-h2" : "font-h3 text-h3"} mb-sm text-indigo-900`}>{project.name}</h3>
         <p className="mb-xl line-clamp-3 font-body-md text-on-surface-variant">
@@ -59,6 +99,9 @@ export default function ProjectCard({ project, featured = false }) {
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div className="h-full bg-secondary" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="mt-2 text-label-sm text-on-surface-variant">
+            {project.completedTasks || 0}/{project.totalTasks || 0} tasks completed
           </div>
         </div>
       </div>
