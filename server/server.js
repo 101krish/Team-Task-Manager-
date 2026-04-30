@@ -41,6 +41,11 @@ app.get("/", (req, res) => {
   res.status(200).send("TaskFlow API is running");
 });
 
+// Favicon route - Prevent 404 errors
+app.get("/favicon.ico", (req, res) => {
+  res.status(204).send();
+});
+
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({ 
