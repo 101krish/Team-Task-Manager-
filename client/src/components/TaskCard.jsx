@@ -4,6 +4,12 @@ const statusLabels = {
   done: "Done"
 };
 
+const statusIcons = {
+  todo: "assignment",
+  "in-progress": "schedule",
+  done: "check_circle"
+};
+
 const nextStatuses = {
   todo: ["in-progress", "done"],
   "in-progress": ["todo", "done"],
@@ -11,9 +17,9 @@ const nextStatuses = {
 };
 
 const priorityStyles = {
-  done: "bg-secondary-container text-on-secondary-container",
-  overdue: "bg-error-container text-on-error-container",
-  normal: "bg-surface-container-highest text-on-surface-variant"
+  done: "bg-green-100 text-green-800",
+  overdue: "bg-red-100 text-red-800",
+  normal: "bg-blue-100 text-blue-800"
 };
 
 export default function TaskCard({ task, onStatusChange, updating }) {
@@ -30,9 +36,16 @@ export default function TaskCard({ task, onStatusChange, updating }) {
   const badgeLabel = isDone ? "Complete" : isOverdue ? "Overdue" : "Active";
 
   return (
-    <div className={`group rounded-lg border border-slate-200 bg-white p-lg transition-all hover:border-l-2 hover:border-l-primary hover:shadow-lg ${isDone ? "opacity-80" : ""}`}>
+    <div className={`group rounded-lg border border-slate-200 bg-white p-lg transition-all hover:border-l-4 hover:border-l-primary hover:shadow-lg ${isDone ? "opacity-80" : ""}`}>
       <div className="mb-md flex items-start justify-between">
-        <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeStyle}`}>{badgeLabel}</span>
+        <div className="flex items-center gap-2">
+          <span className={`material-symbols-outlined text-sm ${isDone ? "text-green-600" : isOverdue ? "text-red-600" : "text-blue-600"}`}>
+            {statusIcons[task.status]}
+          </span>
+          <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeStyle}`}>
+            {badgeLabel}
+          </span>
+        </div>
         <span className="material-symbols-outlined text-[20px] text-outline-variant transition-colors group-hover:text-outline">
           {isDone ? "check_circle" : "drag_indicator"}
         </span>
@@ -44,11 +57,17 @@ export default function TaskCard({ task, onStatusChange, updating }) {
       <div className="mb-md flex items-center justify-between">
         <div className="flex items-center gap-sm text-on-surface-variant">
           <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-          <span className="text-label-sm">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date"}</span>
+          <span className={`text-label-sm ${isOverdue ? "font-semibold text-red-600" : ""}`}>
+            {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date"}
+          </span>
         </div>
-        <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-slate-100 bg-primary-fixed text-[10px] font-bold text-primary">
-          {initials || "U"}
-        </div>
+        {task.assignedTo ? (
+          <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-slate-100 bg-primary-fixed text-[10px] font-bold text-primary" title={task.assignedTo.name}>
+            {initials || "U"}
+          </div>
+        ) : (
+          <span className="text-label-sm text-on-surface-variant">Unassigned</span>
+        )}
       </div>
       <div className="flex flex-wrap gap-sm">
         {nextStatuses[task.status].map((status) => (
@@ -58,8 +77,15 @@ export default function TaskCard({ task, onStatusChange, updating }) {
             type="button"
             disabled={updating}
             onClick={() => onStatusChange(task._id, status)}
+            title={`Move to ${statusLabels[status]}`}
           >
-            {updating ? "Updating..." : `Move to ${statusLabels[status]}`}
+            {updating ? (
+              <>
+                <span className="material-symbols-outlined text-xs">hourglass_empty</span>
+              </>
+            ) : (
+              `${statusLabels[status]}`
+            )}
           </button>
         ))}
       </div>
