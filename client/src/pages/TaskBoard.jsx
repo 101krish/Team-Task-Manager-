@@ -1,0 +1,265 @@
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
+import StateMessage from "../components/StateMessage";
+import TaskCard from "../components/TaskCard";
+import api from "../services/api";
+
+const columns = [
+  { key: "todo", label: "To Do" },
+  { key: "in-progress", label: "In Progress" },
+  { key: "done", label: "Completed" }
+];
+
+const initialTaskForm = { title: "", description: "", status: "todo", dueDate: "", assignedTo: "" };
+
+export default function TaskBoard() {
+  const { projectId } = useParams();
+  const [project, setProject] = useState(null);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState(initialTaskForm);
+  const [saving, setSaving] = useState(false);
+  const [updatingTaskId, setUpdatingTaskId] = useState("");
+  const [formError, setFormError] = useState("");
+
+  const loadTasks = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/tasks/${projectId}`);
+      setProject(response.data.data.project);
+      setTasks(response.data.data.tasks);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTasks();
+  }, [projectId]);
+
+  const groupedTasks = useMemo(
+    () =>
+      columns.reduce((acc, column) => {
+        acc[column.key] = tasks.filter((task) => task.status === column.key);
+        return acc;
+      }, {}),
+    [tasks]
+  );
+
+  const handleStatusChange = async (taskId, status) => {
+    setUpdatingTaskId(taskId);
+    try {
+      const response = await api.put(`/tasks/${taskId}`, { status });
+      setTasks((current) => current.map((task) => (task._id === taskId ? response.data.data : task)));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpdatingTaskId("");
+    }
+  };
+
+  const handleCreateTask = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setFormError("");
+
+    try {
+      const payload = {
+        ...form,
+        projectId,
+        assignedTo: form.assignedTo || undefined,
+        dueDate: form.dueDate || undefined
+      };
+      const response = await api.post("/tasks", payload);
+      setTasks((current) => [response.data.data, ...current]);
+      setForm(initialTaskForm);
+      setModalOpen(false);
+    } catch (err) {
+      setFormError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <StateMessage title="Loading board" message="Fetching Kanban tasks..." />;
+  if (error && !project) return <StateMessage title="Board unavailable" message={error} tone="error" />;
+
+  return (
+    <>
+      {error ? <div className="mb-md rounded-lg bg-error-container p-md text-label-md text-on-error-container">{error}</div> : null}
+      <div className="mb-xl flex items-center justify-between">
+        <div>
+          <h1 className="font-h1 text-h1 text-on-surface">Kanban Board</h1>
+          <p className="text-body-lg text-on-surface-variant">{project?.name || "Project"} workflow and team velocity.</p>
+        </div>
+        <div className="flex items-center gap-md">
+          <div className="flex -space-x-2">
+            {(project?.members || []).slice(0, 4).map((member) => (
+              <div
+                key={member._id}
+                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-surface-container-high text-[10px] font-bold text-primary"
+                title={member.name}
+              >
+                {member.name
+                  ?.split(" ")
+                  .map((part) => part[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+            ))}
+          </div>
+          <button className="flex items-center gap-2 rounded-lg border border-outline px-4 py-2 font-label-md text-label-md transition-colors hover:bg-slate-50" type="button">
+            <span className="material-symbols-outlined text-[18px]">filter_list</span>
+            Filters
+          </button>
+          <button
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-label-md text-label-md text-white transition-colors hover:bg-primary-container"
+            type="button"
+            onClick={() => setModalOpen(true)}
+          >
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Add Task
+          </button>
+        </div>
+      </div>
+
+      {!tasks.length ? (
+        <div className="mb-lg">
+          <StateMessage title="No tasks yet" message="Add a task to start building this project's workflow." />
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-xl pb-12 lg:grid-cols-3">
+        {columns.map((column) => (
+          <div className="flex flex-col gap-md" key={column.key}>
+            <div className="flex items-center justify-between px-xs">
+              <div className="flex items-center gap-sm">
+                <h2 className="font-h3 text-h3 text-on-surface">{column.label}</h2>
+                <span className="rounded-full bg-surface-container-highest px-2 py-0.5 text-label-sm text-on-surface-variant">
+                  {groupedTasks[column.key]?.length || 0}
+                </span>
+              </div>
+              <button className="material-symbols-outlined text-outline transition-colors hover:text-primary" type="button">
+                more_horiz
+              </button>
+            </div>
+            <div className="space-y-md">
+              {groupedTasks[column.key]?.map((task) => (
+                <TaskCard key={task._id} task={task} onStatusChange={handleStatusChange} updating={updatingTaskId === task._id} />
+              ))}
+              <button
+                className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-200 py-3 text-label-md text-on-surface-variant transition-all hover:border-primary hover:text-primary"
+                type="button"
+                onClick={() => {
+                  setForm((current) => ({ ...current, status: column.key }));
+                  setModalOpen(true);
+                }}
+              >
+                <span className="material-symbols-outlined">add</span>
+                Add Task
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {modalOpen ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-gutter">
+          <div className="w-full max-w-lg rounded-xl border border-outline-variant bg-white p-xl shadow-2xl">
+            <div className="mb-lg flex items-center justify-between">
+              <h2 className="font-h2 text-h2 text-on-surface">Add Task</h2>
+              <button className="rounded-full p-2 hover:bg-slate-50" type="button" onClick={() => setModalOpen(false)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            {formError ? <div className="mb-md rounded-lg bg-error-container p-md text-label-md text-on-error-container">{formError}</div> : null}
+            <form className="space-y-lg" onSubmit={handleCreateTask}>
+              <div>
+                <label className="mb-xs block text-label-md text-on-surface-variant" htmlFor="task-title">
+                  Title
+                </label>
+                <input
+                  className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                  id="task-title"
+                  required
+                  value={form.title}
+                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="mb-xs block text-label-md text-on-surface-variant" htmlFor="task-description">
+                  Description
+                </label>
+                <textarea
+                  className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                  id="task-description"
+                  rows="3"
+                  value={form.description}
+                  onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
+                <div>
+                  <label className="mb-xs block text-label-md text-on-surface-variant" htmlFor="task-status">
+                    Status
+                  </label>
+                  <select
+                    className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                    id="task-status"
+                    value={form.status}
+                    onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
+                  >
+                    {columns.map((column) => (
+                      <option key={column.key} value={column.key}>
+                        {column.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-xs block text-label-md text-on-surface-variant" htmlFor="task-assignee">
+                    Assignee
+                  </label>
+                  <select
+                    className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                    id="task-assignee"
+                    value={form.assignedTo}
+                    onChange={(event) => setForm((current) => ({ ...current, assignedTo: event.target.value }))}
+                  >
+                    <option value="">Assign to me</option>
+                    {(project?.members || []).map((member) => (
+                      <option key={member._id} value={member._id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="mb-xs block text-label-md text-on-surface-variant" htmlFor="task-due-date">
+                  Due date
+                </label>
+                <input
+                  className="w-full rounded-lg border-outline-variant bg-surface-bright"
+                  id="task-due-date"
+                  type="date"
+                  value={form.dueDate}
+                  onChange={(event) => setForm((current) => ({ ...current, dueDate: event.target.value }))}
+                />
+              </div>
+              <button className="w-full rounded-lg bg-primary px-lg py-md font-semibold text-white disabled:opacity-60" type="submit" disabled={saving}>
+                {saving ? "Adding..." : "Add Task"}
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
