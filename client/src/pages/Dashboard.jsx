@@ -152,18 +152,7 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
-            </div>
-            <div className={`mt-xs text-label-sm font-medium ${
-              card.key === "overdue" ? "text-error" : "text-on-surface-variant"
-            }`}>
-              {card.key === "total" ? `${projects.length} active project${projects.length === 1 ? "" : "s"}` : ""}
-              {card.key === "pending" && `${Math.round((stats.pending / stats.total) * 100 || 0)}% of tasks`}
-              {card.key === "completed" && `${Math.round((stats.completed / stats.total) * 100 || 0)}% complete`}
-              {card.key === "overdue" && "Need attention"}
-            </div>
-          </div>
-        ))}
-      </div>
+
       <div className="grid grid-cols-1 gap-xl lg:grid-cols-3">
         <div className="space-y-xl lg:col-span-2">
           <div className="rounded-xl border border-outline-variant bg-white p-lg">
