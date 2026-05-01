@@ -27,7 +27,7 @@ export default function MembersSection({ teamId }) {
 
   if (loading) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="h-4 bg-slate-200 rounded animate-pulse"></div>
         <div className="h-4 bg-slate-200 rounded animate-pulse w-3/4"></div>
       </div>
@@ -35,21 +35,25 @@ export default function MembersSection({ teamId }) {
   }
 
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-md">
-      <h3 className="mb-md font-semibold text-on-surface">Team Members</h3>
+    <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
+      <h3 className="mb-lg font-semibold text-on-surface">Team Members</h3>
       
       {error ? (
         <p className="text-sm text-error">{error}</p>
       ) : members.length === 0 ? (
         <p className="text-sm text-on-surface-variant">No team members</p>
       ) : (
-        <div className="space-y-sm">
-          <div className="text-xs text-on-surface-variant mb-md">
-            {members.length} member{members.length !== 1 ? "s" : ""}
+        <div className="space-y-md">
+          <div className="text-label-md font-bold text-on-surface mb-lg px-md py-sm bg-primary-container/20 rounded-lg inline-block">
+            👥 {members.length} Member{members.length !== 1 ? "s" : ""}
           </div>
           {members.map((member) => (
-            <div key={member._id} className="flex items-center gap-2 p-sm rounded-md hover:bg-surface-container transition-colors">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-container text-on-primary-container text-xs font-bold">
+            <div 
+              key={member._id} 
+              className="flex items-center gap-md p-md rounded-lg hover:bg-surface-container transition-all duration-200 hover:shadow-sm border border-transparent hover:border-outline-variant"
+            >
+              {/* Avatar */}
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-container to-primary-fixed text-on-primary-container text-sm font-bold border-2 border-white shadow-sm">
                 {member.name
                   ?.split(" ")
                   .map((part) => part[0])
@@ -57,12 +61,22 @@ export default function MembersSection({ teamId }) {
                   .slice(0, 2)
                   .toUpperCase()}
               </div>
+              
+              {/* Member Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-on-surface truncate">{member.name}</p>
+                <p className="text-sm font-semibold text-on-surface truncate">{member.name}</p>
                 <p className="text-xs text-on-surface-variant truncate">{member.email}</p>
               </div>
-              <span className="text-xs font-semibold text-primary px-2 py-1 rounded-full bg-primary-container">
-                {member.role === "admin" ? "Admin" : "Member"}
+              
+              {/* Role Badge */}
+              <span 
+                className={`flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap ${
+                  member.role === "admin" 
+                    ? "bg-purple-100 text-purple-800 border border-purple-200" 
+                    : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                }`}
+              >
+                {member.role === "admin" ? "👑 Admin" : "✓ Member"}
               </span>
             </div>
           ))}

@@ -7,9 +7,17 @@ import api from "../services/api";
 
 const initialForm = { name: "", description: "", members: [] };
 
+const filterOptions = [
+  { id: "all", label: "All Projects", icon: "folder" },
+  { id: "my", label: "My Projects", icon: "person" },
+  { id: "completed", label: "Completed Projects", icon: "check_circle" },
+  { id: "in-progress", label: "In Progress", icon: "schedule" }
+];
+
 export default function Projects() {
   const { user } = useAuth();
   const [projects, setProjects] = useState([]);
+  const [filteredProjects, setFilteredProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -21,18 +29,51 @@ export default function Projects() {
   const [memberLoading, setMemberLoading] = useState(false);
   const [memberError, setMemberError] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("all");
 
   const loadProjects = async () => {
     try {
       setLoading(true);
       const response = await api.get("/projects");
       setProjects(response.data.data);
+      applyFilter("all", response.data.data);
       setError("");
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilter = (filterId, projectList = projects) => {
+    setActiveFilter(filterId);
+    setFilterOpen(false);
+    
+    let filtered = projectList;
+
+    switch (filterId) {
+      case "my":
+        // Projects where user is a member
+        filtered = projectList.filter((p) =>
+          p.members.some((m) => m._id === user?._id) || p.createdBy?._id === user?._id
+        );
+        break;
+      case "completed":
+        // Projects where all tasks are done (100% progress)
+        filtered = projectList.filter((p) => p.progress === 100 && p.totalTasks > 0);
+        break;
+      case "in-progress":
+        // Projects that are partially completed (0% < progress < 100%)
+        filtered = projectList.filter((p) => p.progress > 0 && p.progress < 100);
+        break;
+      case "all":
+      default:
+        filtered = projectList;
+        break;
+    }
+
+    setFilteredProjects(filtered);
   };
 
   useEffect(() => {
@@ -46,7 +87,9 @@ export default function Projects() {
 
     try {
       const response = await api.post("/projects", form);
-      setProjects((current) => [response.data.data, ...current]);
+      const updatedProjects = [response.data.data, ...projects];
+      setProjects(updatedProjects);
+      applyFilter(activeFilter, updatedProjects);
       setForm(initialForm);
       setModalOpen(false);
     } catch (err) {
@@ -67,9 +110,11 @@ export default function Projects() {
 
     try {
       const response = await api.post(`/projects/${projectId}/members/add`, { email: memberEmail });
-      setProjects((current) =>
-        current.map((project) => (project._id === projectId ? response.data.data : project))
+      const updatedProjects = projects.map((project) =>
+        project._id === projectId ? response.data.data : project
       );
+      setProjects(updatedProjects);
+      applyFilter(activeFilter, updatedProjects);
       setMemberEmail("");
       setSelectedProject(null);
     } catch (err) {
@@ -85,9 +130,11 @@ export default function Projects() {
 
     try {
       const response = await api.delete(`/projects/${projectId}/members/${memberId}`);
-      setProjects((current) =>
-        current.map((project) => (project._id === projectId ? response.data.data : project))
+      const updatedProjects = projects.map((project) =>
+        project._id === projectId ? response.data.data : project
       );
+      setProjects(updatedProjects);
+      applyFilter(activeFilter, updatedProjects);
     } catch (err) {
       setMemberError(err.message);
     } finally {
@@ -99,7 +146,9 @@ export default function Projects() {
     setLoading(true);
     try {
       await api.delete(`/projects/${projectId}`);
-      setProjects((current) => current.filter((p) => p._id !== projectId));
+      const updatedProjects = projects.filter((p) => p._id !== projectId);
+      setProjects(updatedProjects);
+      applyFilter(activeFilter, updatedProjects);
       setDeleteConfirm(null);
     } catch (err) {
       setError(err.message);
@@ -116,10 +165,48 @@ export default function Projects() {
           <p className="font-body-lg text-on-surface-variant">Manage and track progress across your team's active workstreams.</p>
         </div>
         <div className="flex gap-md">
-          <button className="flex items-center gap-2 rounded-lg border border-outline px-md py-sm font-semibold text-label-md text-on-surface transition-colors hover:bg-surface-container" type="button">
-            <span className="material-symbols-outlined text-sm">filter_list</span>
-            Filter
-          </button>
+          <div className="relative">
+            <button 
+              className={`flex items-center gap-2 rounded-lg border px-md py-sm font-semibold text-label-md transition-all ${
+                activeFilter === "all" 
+                  ? "border-primary bg-primary-container text-primary" 
+                  : "border-outline bg-white text-on-surface hover:bg-surface-container"
+              }`}
+              type="button"
+              onClick={() => setFilterOpen(!filterOpen)}
+            >
+              <span className="material-symbols-outlined text-sm">filter_list</span>
+              {filterOptions.find(f => f.id === activeFilter)?.label || "Filter"}
+              <span className={`material-symbols-outlined text-sm transition-transform ${filterOpen ? "rotate-180" : ""}`}>
+                expand_more
+              </span>
+            </button>
+            
+            {filterOpen && (
+              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-outline-variant bg-white shadow-lg z-10">
+                <div className="p-2">
+                  {filterOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-label-md font-medium transition-all ${
+                        activeFilter === option.id
+                          ? "bg-primary-container text-primary"
+                          : "text-on-surface hover:bg-surface-container"
+                      }`}
+                      onClick={() => applyFilter(option.id)}
+                    >
+                      <span className="material-symbols-outlined text-sm">{option.icon}</span>
+                      {option.label}
+                      {activeFilter === option.id && (
+                        <span className="material-symbols-outlined text-sm ml-auto">check</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
           {user?.role === "admin" && (
             <button
               className="flex items-center gap-2 rounded-lg bg-primary px-lg py-sm font-semibold text-label-md text-on-primary shadow-sm transition-all hover:opacity-90 active:scale-95"
@@ -140,18 +227,32 @@ export default function Projects() {
       ) : null}
 
       {!loading && !error && projects.length ? (
-        <div className="grid grid-cols-1 gap-xl lg:grid-cols-4">
-          <div className="lg:col-span-1">
-            <MembersSection teamId={user?.teamId} />
-          </div>
-          <div className="lg:col-span-3">
-            <div className="grid grid-cols-1 gap-xl md:grid-cols-2">
-              {projects.map((project, index) => (
-                <ProjectCard key={project._id} project={project} featured={index === 0} onEdit={() => setSelectedProject(project)} onDelete={() => setDeleteConfirm(project._id)} />
-              ))}
+        <>
+          {filteredProjects.length === 0 ? (
+            <StateMessage 
+              title="No projects match this filter" 
+              message={`Try adjusting your filter. Total projects: ${projects.length}`} 
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-xl lg:grid-cols-4">
+              <div className="lg:col-span-1">
+                <MembersSection teamId={user?.teamId} />
+              </div>
+              <div className="lg:col-span-3">
+                <div className="mb-md">
+                  <p className="text-label-sm text-on-surface-variant font-medium">
+                    Showing <span className="font-bold text-on-surface">{filteredProjects.length}</span> of <span className="font-bold text-on-surface">{projects.length}</span> projects
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-xl md:grid-cols-2">
+                  {filteredProjects.map((project, index) => (
+                    <ProjectCard key={project._id} project={project} featured={index === 0} onEdit={() => setSelectedProject(project)} onDelete={() => setDeleteConfirm(project._id)} />
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       ) : null}
 
       {selectedProject && selectedProject.isOwner && (

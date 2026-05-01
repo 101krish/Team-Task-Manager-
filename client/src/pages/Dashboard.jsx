@@ -116,19 +116,46 @@ export default function Dashboard() {
         {statCards.map((card) => (
           <div
             key={card.key}
-            className={`rounded-xl border border-outline-variant bg-white p-lg transition-all hover:shadow-lg ${
-              card.key === "overdue" ? "border-l-4 border-l-error bg-error-container/10" : "border-l-4 border-l-primary"
+            className={`rounded-xl border-2 bg-white p-lg transition-all hover:shadow-xl hover:scale-[1.02] cursor-pointer ${
+              card.key === "overdue" 
+                ? "border-error bg-error-container/5" 
+                : card.key === "completed"
+                ? "border-emerald-200"
+                : card.key === "pending"
+                ? "border-amber-200"
+                : "border-primary"
             }`}
           >
             <div className="mb-sm flex items-start justify-between">
-              <span className={`text-label-md ${card.key === "overdue" ? "font-semibold text-on-error-container" : "text-on-surface-variant"}`}>
+              <span className={`text-label-md font-semibold ${
+                card.key === "overdue" ? "text-error" : "text-on-surface-variant"
+              }`}>
                 {card.label}
               </span>
-              <span className={`material-symbols-outlined ${card.iconClass}`}>{card.icon}</span>
+              <span className={`material-symbols-outlined text-2xl ${
+                card.key === "overdue" ? "text-error" : 
+                card.key === "completed" ? "text-emerald-600" :
+                card.key === "pending" ? "text-amber-600" :
+                "text-primary"
+              }`}>
+                {card.icon}
+              </span>
             </div>
-            <div className={`font-h2 text-h2 ${card.key === "overdue" ? "text-error" : ""}`}>{stats[card.key]}</div>
-            <div className={`mt-xs text-label-sm ${card.key === "overdue" ? "font-medium text-error" : "text-on-surface-variant"}`}>
-              {card.key === "total" ? `${projects.length} active project${projects.length === 1 ? "" : "s"}` : "Calculated from live tasks"}
+            <div className={`font-h1 text-h1 ${
+              card.key === "overdue" ? "text-error" : 
+              card.key === "completed" ? "text-emerald-600" :
+              card.key === "pending" ? "text-amber-600" :
+              "text-primary"
+            }`}>
+              {stats[card.key]}
+            </div>
+            <div className={`mt-xs text-label-sm font-medium ${
+              card.key === "overdue" ? "text-error" : "text-on-surface-variant"
+            }`}>
+              {card.key === "total" ? `${projects.length} active project${projects.length === 1 ? "" : "s"}` : ""}
+              {card.key === "pending" && `${Math.round((stats.pending / stats.total) * 100 || 0)}% of tasks`}
+              {card.key === "completed" && `${Math.round((stats.completed / stats.total) * 100 || 0)}% complete`}
+              {card.key === "overdue" && "Need attention"}
             </div>
           </div>
         ))}
@@ -141,15 +168,35 @@ export default function Dashboard() {
               <span className="text-label-sm text-on-surface-variant">Live project progress</span>
             </div>
             {projects.length ? (
-              <div className="space-y-md">
+              <div className="space-y-lg">
                 {projects.slice(0, 6).map((project) => (
-                  <div key={project._id}>
-                    <div className="mb-2 flex justify-between text-label-md">
-                      <span className="font-semibold text-on-surface">{project.name}</span>
-                      <span className="text-on-surface-variant">{project.progress || 0}% ({project.completedTasks || 0}/{project.totalTasks || 0})</span>
+                  <div key={project._id} className="hover:bg-slate-50 p-md rounded-lg transition-colors">
+                    <div className="mb-3 flex justify-between items-center">
+                      <span className="font-semibold text-on-surface text-label-lg">{project.name}</span>
+                      <span className={`text-label-md font-bold ${
+                        project.progress === 100 ? "text-emerald-600" :
+                        project.progress >= 50 ? "text-blue-600" :
+                        "text-amber-600"
+                      }`}>
+                        {project.progress}%
+                      </span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full bg-primary" style={{ width: `${project.progress || 0}%` }} />
+                    <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                      <div 
+                        className={`h-full transition-all duration-300 ${
+                          project.progress === 100 ? "bg-emerald-500" :
+                          project.progress >= 50 ? "bg-blue-500" :
+                          "bg-amber-500"
+                        }`} 
+                        style={{ width: `${project.progress || 0}%` }} 
+                      />
+                    </div>
+                    <div className="mt-2 text-label-sm text-on-surface-variant">
+                      {project.totalTasks === 0 ? (
+                        "No tasks yet"
+                      ) : (
+                        <>{project.completedTasks || 0}/{project.totalTasks || 0} tasks completed</>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -158,27 +205,35 @@ export default function Dashboard() {
               <p className="text-body-md text-on-surface-variant">No projects yet. Admins can create the first project from Projects.</p>
             )}
           </div>
-          <div className="overflow-hidden rounded-xl border border-outline-variant bg-white">
-            <div className="flex items-center justify-between border-b border-outline-variant bg-error-container/5 px-lg py-md">
+          <div className="overflow-hidden rounded-xl border border-error-container bg-error-container/5">
+            <div className="flex items-center justify-between border-b border-error-container/20 bg-error-container/10 px-lg py-md">
               <h3 className="flex items-center gap-2 font-h3 text-h3 text-error">
                 <span className="material-symbols-outlined">priority_high</span>
                 Critical Overdue Tasks
               </h3>
+              {overdueTasks.length > 0 && (
+                <span className="text-label-sm font-bold px-3 py-1 rounded-full bg-error text-white">
+                  {overdueTasks.length}
+                </span>
+              )}
             </div>
             {overdueTasks.length ? (
               <div className="divide-y divide-outline-variant">
                 {overdueTasks.map((task) => (
-                  <div className="flex items-center justify-between p-md" key={task._id}>
+                  <div className="flex items-center justify-between p-lg hover:bg-error-container/5 transition-colors" key={task._id}>
                     <div>
                       <p className="font-semibold text-on-surface">{task.title}</p>
-                      <p className="text-label-sm text-error">Due {new Date(task.dueDate).toLocaleDateString()}</p>
+                      <p className="text-label-sm text-error font-medium">
+                        <span className="material-symbols-outlined text-sm inline mr-1">calendar_today</span>
+                        Due {new Date(task.dueDate).toLocaleDateString()}
+                      </p>
                     </div>
-                    <span className="text-label-sm text-on-surface-variant">{task.assignedTo?.name || "Unassigned"}</span>
+                    <span className="text-label-sm font-medium text-on-surface-variant">{task.assignedTo?.name || "Unassigned"}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="p-lg text-body-md text-on-surface-variant">No overdue tasks. Nice and tidy.</p>
+              <p className="p-lg text-body-md text-on-surface-variant">✓ No overdue tasks. Nice and tidy!</p>
             )}
           </div>
         </div>
@@ -186,22 +241,39 @@ export default function Dashboard() {
           <div className="border-b border-outline-variant px-lg py-md">
             <h3 className="font-h3 text-h3 text-on-surface">Recent Activity</h3>
           </div>
-          <div className="space-y-lg p-lg">
-            {tasks.slice(0, 5).map((task) => (
-              <div className="flex gap-4" key={task._id}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-fixed">
-                  <span className="material-symbols-outlined text-sm text-primary">assignment</span>
-                </div>
-                <div>
-                  <p className="text-body-md text-on-surface">
-                    <span className="font-bold">{task.assignedTo?.name || "A team member"}</span> updated{" "}
-                    <span className="font-medium text-primary">{task.title}</span>
-                  </p>
-                  <p className="text-label-sm text-on-surface-variant">{task.status}</p>
-                </div>
+          <div className="p-lg">
+            {tasks.length === 0 ? (
+              <div className="py-lg text-center">
+                <div className="mb-md text-3xl">📭</div>
+                <p className="text-body-md text-on-surface-variant">No recent activity yet</p>
+                <p className="text-label-sm text-on-surface-variant mt-2">Tasks will appear here as you create them</p>
               </div>
-            ))}
-            {!tasks.length ? <p className="text-body-md text-on-surface-variant">Task activity will appear here.</p> : null}
+            ) : (
+              <div className="space-y-lg">
+                {tasks.slice(0, 5).map((task) => (
+                  <div className="flex gap-4 pb-lg border-b border-outline-variant last:border-b-0 last:pb-0" key={task._id}>
+                    <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
+                      task.status === "done" ? "bg-emerald-100" : task.status === "in-progress" ? "bg-blue-100" : "bg-amber-100"
+                    }`}>
+                      <span className={`material-symbols-outlined text-sm ${
+                        task.status === "done" ? "text-emerald-700" : task.status === "in-progress" ? "text-blue-700" : "text-amber-700"
+                      }`}>
+                        {task.status === "done" ? "check_circle" : task.status === "in-progress" ? "schedule" : "assignment"}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-md text-on-surface">
+                        <span className="font-bold">{task.assignedTo?.name || "A team member"}</span> has a task{" "}
+                        <span className="font-medium text-primary">{task.title}</span>
+                      </p>
+                      <p className="text-label-sm text-on-surface-variant mt-1">
+                        Status: <span className="font-semibold">{task.status === "in-progress" ? "In Progress" : task.status === "done" ? "Completed" : "To Do"}</span>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
