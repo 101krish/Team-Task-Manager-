@@ -51,7 +51,19 @@ export default function TaskBoard() {
 
   // Debug logging: Show available members for task assignment
   useEffect(() => {
-    if (project?.members && project.members.length > 0) {
+    if (project?.members) {
+      console.log("Project Members:", project.members);
+      console.log(`Members Count: ${project.members.length}`);
+      
+      if (project.members.length === 1) {
+        console.warn("⚠️ BACKEND ISSUE: Only 1 member in project.members (usually just admin)");
+        console.log("Fix: Ensure project creation fetches Team and copies team.members");
+      } else if (project.members.length > 1) {
+        console.log(`✅ CORRECT: Project has ${project.members.length} members`);
+      } else {
+        console.warn("⚠️ Project has 0 members - check team setup");
+      }
+      
       console.log("✓ Project Members Available:", project.members.map(m => ({ name: m.name, id: m._id, role: m.role })));
     } else {
       console.warn("⚠ Project has no members assigned");
