@@ -96,7 +96,14 @@ export const createTask = async (req, res, next) => {
       project.members.some((member) => member.toString() === assignee._id.toString()) ||
       project.createdBy.toString() === assignee._id.toString();
 
+    // Debug logging
+    console.log("📋 Task Creation Validation:");
+    console.log("   Project Members:", project.members.map(m => m.toString()));
+    console.log("   Assignee ID:", assignee._id.toString());
+    console.log("   Is Project Member:", isProjectMember);
+
     if (!isProjectMember) {
+      console.error("✗ Task assignment failed: User not in project members");
       return res.status(400).json({ success: false, message: "Assigned user must be a project member" });
     }
 

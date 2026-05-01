@@ -49,6 +49,15 @@ export default function TaskBoard() {
     loadTasks();
   }, [projectId]);
 
+  // Debug logging: Show available members for task assignment
+  useEffect(() => {
+    if (project?.members && project.members.length > 0) {
+      console.log("✓ Project Members Available:", project.members.map(m => ({ name: m.name, id: m._id, role: m.role })));
+    } else {
+      console.warn("⚠ Project has no members assigned");
+    }
+  }, [project]);
+
   const groupedTasks = useMemo(
     () =>
       columns.reduce((acc, column) => {
@@ -96,11 +105,19 @@ export default function TaskBoard() {
         assignedTo: form.assignedTo || undefined,
         dueDate: form.dueDate || undefined
       };
+      
+      // Debug logging
+      console.log("📋 Creating task with payload:", payload);
+      console.log("📋 Assigned user ID:", payload.assignedTo);
+      console.log("📋 Available project members:", project?.members?.map(m => ({ id: m._id, name: m.name })));
+      
       const response = await api.post("/tasks", payload);
+      console.log("✓ Task created successfully:", response.data.data);
       setTasks((current) => [response.data.data, ...current]);
       setForm(initialTaskForm);
       setModalOpen(false);
     } catch (err) {
+      console.error("✗ Task creation failed:", err.message);
       setFormError(err.message);
     } finally {
       setSaving(false);
@@ -299,22 +316,43 @@ export default function TaskBoard() {
                     className="w-full rounded-lg border border-outline-variant bg-surface-bright px-md py-sm font-body-md text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-container/20"
                     id="task-assignee"
                     value={form.assignedTo}
-                    onChange={(event) => setForm((current) => ({ ...current, assignedTo: event.target.value }))}
+                    onChange={(event) => {
+                      const selectedId = event.target.value;
+                      if (selectedId) {
+                        const selected = project?.members?.find(m => m._id === selectedId);
+                        console.log("📌 Task assigned to:", selected?.name, `(${selected?.role})`);
+                      }
+                      setForm((current) => ({ ...current, assignedTo: selectedId }));
+                    }}
                     required
-                    disabled={user?.role === "member"}
+                    disabled={user?.role === "member" || !project?.members || project.members.length === 0}
                   >
-                    <option value="">{user?.role === "admin" ? "Select a project member" : "Assign to me"}</option>
+                    <option value="">
+                      {user?.role === "admin" 
+                        ? project?.members && project.members.length > 0 
+                          ? `Select from ${project.members.length} team member${project.members.length === 1 ? "" : "s"}`
+                          : "No project members available"
+                        : "Assign to me"
+                      }
+                    </option>
                     {user?.role === "admin" ? (
-                      // Show ONLY project members, not all team members
-                      (project?.members || []).map((member) => (
-                        <option key={member._id} value={member._id}>
-                          {member.name} {member._id === user?._id ? "(You)" : ""}
-                        </option>
-                      ))
+                      // Show ALL project members
+                      (project?.members && project.members.length > 0) ? (
+                        project.members.map((member) => (
+                          <option key={member._id} value={member._id}>
+                            {member.name} {member._id === user?._id ? "(You)" : ""} • {member.role}
+                          </option>
+                        ))
+                      ) : (
+                        <option disabled>No members available</option>
+                      )
                     ) : (
                       <option value={user?._id}>{user?.name}</option>
                     )}
                   </select>
+                  {!project?.members || project.members.length === 0 ? (
+                    <p className="mt-xs text-label-xs text-error">⚠ No project members available. Task assignment disabled.</p>
+                  ) : null}
                 </div>
               </div>
               <div>

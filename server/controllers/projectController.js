@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Project from "../models/Project.js";
 import Task from "../models/Task.js";
 import User from "../models/User.js";
+import Team from "../models/Team.js";
 
 // Check if user is project member or creator
 const canAccessProject = (project, user) =>
@@ -73,30 +74,65 @@ export const createProject = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "User must belong to a team to create projects" });
     }
 
-    // Creator is automatically added to members
-    const uniqueMemberIds = [...new Set([req.user._id.toString(), ...members])];
-    const invalidMemberId = uniqueMemberIds.find((id) => !mongoose.Types.ObjectId.isValid(id));
+    // Fetch the team to get all team members
+    const team = await Team.findById(req.user.teamId).populate("members");
+    if (!team) {
+      return res.status(404).json({ success: false, message: "Team not found" });
+    }
 
+    // Get all team member IDs
+    const teamMemberIds = team.members.map((m) => m._id?.toString() || m.toString());
+
+    // Start with all team members, then add any additional members from request
+    // Also ensure creator is included
+    const allMemberIds = new Set([
+      ...teamMemberIds,
+      req.user._id.toString(),
+      ...members
+    ]);
+
+    const memberIdsArray = Array.from(allMemberIds);
+
+    // Debug logging
+    console.log("📦 Project Creation - Adding Members:");
+    console.log("   Team Members Count:", teamMemberIds.length);
+    console.log("   Team Members:", team.members.map(m => ({ id: m._id, name: m.name, role: m.role })));
+    console.log("   Total Members Being Added:", memberIdsArray.length);
+    
+    // Validate all member IDs
+    const invalidMemberId = memberIdsArray.find((id) => !mongoose.Types.ObjectId.isValid(id));
     if (invalidMemberId) {
       return res.status(400).json({ success: false, message: "One or more member IDs are invalid" });
     }
 
-    const usersFound = await User.countDocuments({ _id: { $in: uniqueMemberIds } });
-    if (usersFound !== uniqueMemberIds.length) {
-      return res.status(400).json({ success: false, message: "One or more members do not exist" });
+    // Verify all users exist and belong to same team
+    const usersFound = await User.countDocuments({ 
+      _id: { $in: memberIdsArray },
+      teamId: req.user.teamId 
+    });
+    if (usersFound !== memberIdsArray.length) {
+      return res.status(400).json({ success: false, message: "One or more members do not exist or do not belong to this team" });
     }
 
+    // Create project with all team members
     const project = await Project.create({
       name,
       description,
       teamId: req.user.teamId,
-      members: uniqueMemberIds,
+      members: memberIdsArray,
       createdBy: req.user._id
     });
 
     const populatedProject = await Project.findById(project._id)
       .populate("members", "name email role")
       .populate("createdBy", "name email role");
+
+    // Success logging
+    console.log("✓ Project Created Successfully:");
+    console.log("   Project Name:", name);
+    console.log("   Project ID:", project._id);
+    console.log("   Total Members:", populatedProject.members.length);
+    console.log("   Member Details:", populatedProject.members.map(m => ({ id: m._id, name: m.name, role: m.role })));
 
     res.status(201).json({
       success: true,
