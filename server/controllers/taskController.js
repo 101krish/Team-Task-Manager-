@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Project from "../models/Project.js";
 import Task from "../models/Task.js";
 import User from "../models/User.js";
+import Team from "../models/Team.js";
 import { assertProjectAccess } from "./projectController.js";
 
 const VALID_STATUSES = ["todo", "in-progress", "done"];
@@ -15,9 +16,40 @@ export const getTasksByProject = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Project not found or access denied" });
     }
 
-    const populatedProject = await Project.findById(projectId)
+    let populatedProject = await Project.findById(projectId)
       .populate("members", "name email role")
       .populate("createdBy", "name email role");
+
+    // IMPORTANT: Ensure all team members are in project.members
+    // This handles both new projects (correctly created) and old projects (created before this fix)
+    const team = await Team.findById(project.teamId).populate("members", "name email role");
+    if (team && team.members.length > 0) {
+      const currentMemberIds = new Set(populatedProject.members.map(m => m._id.toString()));
+      const teamMemberIds = team.members.map(m => m._id.toString());
+      
+      // Check if any team members are missing from project.members
+      const missingMemberIds = teamMemberIds.filter(id => !currentMemberIds.has(id));
+      
+      if (missingMemberIds.length > 0) {
+        console.log(`📋 Adding missing team members to project.members (${missingMemberIds.length} members)`);
+        
+        // Add missing members to project.members in database
+        const allMemberIds = Array.from(new Set([
+          ...populatedProject.members.map(m => m._id.toString()),
+          ...teamMemberIds
+        ]));
+        
+        await Project.updateOne(
+          { _id: projectId },
+          { members: allMemberIds }
+        );
+        
+        // Reload project with updated members
+        populatedProject = await Project.findById(projectId)
+          .populate("members", "name email role")
+          .populate("createdBy", "name email role");
+      }
+    }
 
     // Project members can see all tasks in the project
     const tasks = await Task.find({ projectId })

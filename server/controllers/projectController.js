@@ -30,8 +30,42 @@ export const getProjects = async (req, res, next) => {
       .populate("createdBy", "name email role")
       .sort({ createdAt: -1 });
 
-    const projectsWithStats = await Promise.all(
+    // Ensure all team members are in each project
+    const team = await Team.findById(req.user.teamId).populate("members", "name email role");
+    
+    const updatedProjects = await Promise.all(
       projects.map(async (project) => {
+        // Check if any team members are missing
+        const currentMemberIds = new Set(project.members.map(m => m._id.toString()));
+        const teamMemberIds = team.members.map(m => m._id.toString());
+        const missingMemberIds = teamMemberIds.filter(id => !currentMemberIds.has(id));
+        
+        if (missingMemberIds.length > 0) {
+          console.log(`✏️ Fixing project "${project.name}": Adding ${missingMemberIds.length} missing team members`);
+          
+          // Update project with all team members
+          const allMemberIds = Array.from(new Set([
+            ...currentMemberIds,
+            ...teamMemberIds
+          ]));
+          
+          await Project.updateOne(
+            { _id: project._id },
+            { members: allMemberIds }
+          );
+          
+          // Reload the project
+          project = await Project.findById(project._id)
+            .populate("members", "name email role")
+            .populate("createdBy", "name email role");
+        }
+        
+        return project;
+      })
+    );
+
+    const projectsWithStats = await Promise.all(
+      updatedProjects.map(async (project) => {
         const [totalTasks, completedTasks, inProgressTasks, todoTasks] = await Promise.all([
           Task.countDocuments({ projectId: project._id }),
           Task.countDocuments({ projectId: project._id, status: "done" }),
