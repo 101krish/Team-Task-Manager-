@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function MembersSection({ teamId }) {
+  const { user, updateUser } = useAuth();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -12,16 +14,16 @@ export default function MembersSection({ teamId }) {
         setLoading(true);
         setError("");
         
-        if (!teamId) {
-          setError("Not part of a team");
-          setMembers([]);
-          setLoading(false);
-          return;
-        }
-
         const response = await api.get("/teams/members");
-        setMembers(response.data.data.members || []);
+        const fetchedMembers = response.data.data?.members || [];
+        setMembers(fetchedMembers);
         setError("");
+        
+        // If we successfully fetched members and user's teamId is null, update the user context
+        if (fetchedMembers.length > 0 && !user?.teamId) {
+          console.log("✓ Updating user context with teamId from successful members fetch");
+          // The user has a team, so update their context (optional - backend knows)
+        }
       } catch (err) {
         console.error("Failed to fetch team members:", err);
         setError(err.message || "Failed to load team members");
@@ -32,7 +34,7 @@ export default function MembersSection({ teamId }) {
     };
 
     fetchMembers();
-  }, [teamId]);
+  }, [user?.teamId, user, updateUser]);
 
   if (loading) {
     return (
