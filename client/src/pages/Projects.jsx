@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ProjectCard from "../components/ProjectCard";
 import StateMessage from "../components/StateMessage";
 import MembersSection from "../components/MembersSection";
@@ -8,14 +8,15 @@ import api from "../services/api";
 const initialForm = { name: "", description: "", members: [] };
 
 const filterOptions = [
-  { id: "all", label: "All Projects", icon: "folder" },
-  { id: "my", label: "My Projects", icon: "person" },
-  { id: "completed", label: "Completed Projects", icon: "check_circle" },
-  { id: "in-progress", label: "In Progress", icon: "schedule" }
+  { id: "all", label: "All Projects", icon: "folder", description: "View all projects" },
+  { id: "my", label: "My Projects", icon: "person", description: "Projects you're a member of" },
+  { id: "completed", label: "Completed Projects", icon: "check_circle", description: "100% done" },
+  { id: "in-progress", label: "In Progress", icon: "schedule", description: "Tasks pending" }
 ];
 
 export default function Projects() {
   const { user } = useAuth();
+  const filterRef = useRef(null);
   const [projects, setProjects] = useState([]);
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +32,23 @@ export default function Projects() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
+
+  // Handle click outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setFilterOpen(false);
+      }
+    };
+
+    if (filterOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [filterOpen]);
 
   const loadProjects = async () => {
     try {
@@ -54,21 +72,31 @@ export default function Projects() {
 
     switch (filterId) {
       case "my":
-        // Projects where user is a member
-        filtered = projectList.filter((p) =>
-          p.members.some((m) => m._id === user?._id) || p.createdBy?._id === user?._id
-        );
+        // Filter: Projects where current user is a member or creator
+        filtered = projectList.filter((p) => {
+          const isMember = p.members?.some((m) => m._id === user?._id);
+          const isCreator = p.createdBy?._id === user?._id;
+          return isMember || isCreator;
+        });
         break;
+
       case "completed":
-        // Projects where all tasks are done (100% progress)
-        filtered = projectList.filter((p) => p.progress === 100 && p.totalTasks > 0);
+        // Filter: Projects where all tasks are completed (100% progress and has tasks)
+        filtered = projectList.filter((p) => {
+          return p.totalTasks > 0 && p.progress === 100;
+        });
         break;
+
       case "in-progress":
-        // Projects that are partially completed (0% < progress < 100%)
-        filtered = projectList.filter((p) => p.progress > 0 && p.progress < 100);
+        // Filter: Projects with at least one incomplete task (0 < progress < 100)
+        filtered = projectList.filter((p) => {
+          return p.totalTasks > 0 && p.progress > 0 && p.progress < 100;
+        });
         break;
+
       case "all":
       default:
+        // Show all projects
         filtered = projectList;
         break;
     }
@@ -164,41 +192,48 @@ export default function Projects() {
           <h1 className="mb-2 font-h1 text-h1 text-on-surface">Projects Overview</h1>
           <p className="font-body-lg text-on-surface-variant">Manage and track progress across your team's active workstreams.</p>
         </div>
-        <div className="flex gap-md">
-          <div className="relative">
+        <div className="flex gap-md items-center">
+          {/* Filter Button - Matches Create Button Style */}
+          <div className="relative" ref={filterRef}>
             <button 
-              className={`flex items-center gap-2 rounded-lg border px-md py-sm font-semibold text-label-md transition-all ${
-                activeFilter === "all" 
-                  ? "border-primary bg-primary-container text-primary" 
-                  : "border-outline bg-white text-on-surface hover:bg-surface-container"
-              }`}
+              className="flex items-center gap-2 rounded-lg border-2 border-outline px-lg py-sm font-semibold text-label-md text-on-surface transition-all hover:border-primary hover:bg-surface-container active:scale-95"
               type="button"
               onClick={() => setFilterOpen(!filterOpen)}
+              title={`Current filter: ${filterOptions.find(f => f.id === activeFilter)?.label}`}
             >
               <span className="material-symbols-outlined text-sm">filter_list</span>
-              {filterOptions.find(f => f.id === activeFilter)?.label || "Filter"}
-              <span className={`material-symbols-outlined text-sm transition-transform ${filterOpen ? "rotate-180" : ""}`}>
+              <span className="hidden sm:inline">Filter</span>
+              <span className={`material-symbols-outlined text-sm transition-transform duration-200 ${filterOpen ? "rotate-180" : ""}`}>
                 expand_more
               </span>
             </button>
             
             {filterOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-outline-variant bg-white shadow-lg z-10">
-                <div className="p-2">
+              <div className="absolute right-0 top-full mt-2 w-72 rounded-xl border-2 border-outline-variant bg-white shadow-xl z-50 overflow-hidden animate-in fade-in-50 duration-200">
+                <div className="p-1">
+                  <div className="px-4 py-3 border-b border-outline-variant">
+                    <p className="text-label-sm font-semibold text-on-surface-variant">FILTER PROJECTS</p>
+                  </div>
+                  
                   {filterOptions.map((option) => (
                     <button
                       key={option.id}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-label-md font-medium transition-all ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left text-label-md font-medium transition-all rounded-lg my-0.5 ${
                         activeFilter === option.id
-                          ? "bg-primary-container text-primary"
+                          ? "bg-primary-container text-primary shadow-sm"
                           : "text-on-surface hover:bg-surface-container"
                       }`}
                       onClick={() => applyFilter(option.id)}
                     >
                       <span className="material-symbols-outlined text-sm">{option.icon}</span>
-                      {option.label}
+                      <div className="flex-1">
+                        <div>{option.label}</div>
+                        <div className="text-label-sm text-on-surface-variant mt-0.5">
+                          {option.description}
+                        </div>
+                      </div>
                       {activeFilter === option.id && (
-                        <span className="material-symbols-outlined text-sm ml-auto">check</span>
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
                       )}
                     </button>
                   ))}
@@ -207,6 +242,7 @@ export default function Projects() {
             )}
           </div>
           
+          {/* Create Project Button */}
           {user?.role === "admin" && (
             <button
               className="flex items-center gap-2 rounded-lg bg-primary px-lg py-sm font-semibold text-label-md text-on-primary shadow-sm transition-all hover:opacity-90 active:scale-95"
@@ -214,7 +250,8 @@ export default function Projects() {
               onClick={() => setModalOpen(true)}
             >
               <span className="material-symbols-outlined text-sm">add</span>
-              Create New Project
+              <span className="hidden sm:inline">Create New Project</span>
+              <span className="sm:hidden">Create</span>
             </button>
           )}
         </div>
@@ -239,10 +276,17 @@ export default function Projects() {
                 <MembersSection teamId={user?.teamId} />
               </div>
               <div className="lg:col-span-3">
-                <div className="mb-md">
-                  <p className="text-label-sm text-on-surface-variant font-medium">
-                    Showing <span className="font-bold text-on-surface">{filteredProjects.length}</span> of <span className="font-bold text-on-surface">{projects.length}</span> projects
-                  </p>
+                <div className="mb-lg flex items-center justify-between">
+                  <div>
+                    <p className="text-label-md text-on-surface-variant font-medium">
+                      Showing <span className="font-bold text-on-surface text-label-lg">{filteredProjects.length}</span> of <span className="font-bold text-on-surface text-label-lg">{projects.length}</span> projects
+                    </p>
+                    {activeFilter !== "all" && (
+                      <p className="text-label-sm text-primary mt-1 font-semibold">
+                        ✓ Filter: {filterOptions.find(f => f.id === activeFilter)?.label}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 gap-xl md:grid-cols-2">
                   {filteredProjects.map((project, index) => (
