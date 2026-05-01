@@ -10,26 +10,39 @@ export default function MembersSection({ teamId }) {
     const fetchMembers = async () => {
       try {
         setLoading(true);
+        setError("");
+        
+        if (!teamId) {
+          setError("Not part of a team");
+          setMembers([]);
+          setLoading(false);
+          return;
+        }
+
         const response = await api.get("/teams/members");
-        setMembers(response.data.data.members);
+        setMembers(response.data.data.members || []);
         setError("");
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to load team members");
+        console.error("Failed to fetch team members:", err);
+        setError(err.message || "Failed to load team members");
+        setMembers([]);
       } finally {
         setLoading(false);
       }
     };
 
-    if (teamId) {
-      fetchMembers();
-    }
+    fetchMembers();
   }, [teamId]);
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        <div className="h-4 bg-slate-200 rounded animate-pulse"></div>
-        <div className="h-4 bg-slate-200 rounded animate-pulse w-3/4"></div>
+      <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
+        <h3 className="mb-lg font-semibold text-on-surface">Team Members</h3>
+        <div className="space-y-3">
+          <div className="h-4 bg-slate-200 rounded animate-pulse"></div>
+          <div className="h-4 bg-slate-200 rounded animate-pulse w-3/4"></div>
+          <div className="h-4 bg-slate-200 rounded animate-pulse w-5/6"></div>
+        </div>
       </div>
     );
   }
@@ -39,7 +52,11 @@ export default function MembersSection({ teamId }) {
       <h3 className="mb-lg font-semibold text-on-surface">Team Members</h3>
       
       {error ? (
-        <p className="text-sm text-error">{error}</p>
+        <div className="flex flex-col items-center justify-center py-lg text-center">
+          <span className="text-3xl mb-2">⚠️</span>
+          <p className="text-sm text-error font-medium">{error}</p>
+          <p className="text-xs text-on-surface-variant mt-2">Check that you are part of a team</p>
+        </div>
       ) : members.length === 0 ? (
         <p className="text-sm text-on-surface-variant">No team members</p>
       ) : (

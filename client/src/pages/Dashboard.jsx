@@ -24,34 +24,65 @@ export default function Dashboard() {
     const loadDashboard = async () => {
       try {
         setLoading(true);
-        const projectResponse = await api.get("/projects");
-        const projectData = projectResponse.data.data;
-        const taskResponses = await Promise.all(projectData.map((project) => api.get(`/tasks/${project._id}`)));
-        setProjects(projectData);
+        setError("");
         
-        // All users see all tasks in their projects (already filtered by backend)
-        const allTasks = taskResponses.flatMap((response) => response.data.data.tasks);
-        setTasks(allTasks);
-
-        // Fetch team info
+        // Load projects
+        let projectData = [];
         try {
-          const teamResponse = await api.get("/teams");
-          setTeam(teamResponse.data.data.team);
+          const projectResponse = await api.get("/projects");
+          projectData = projectResponse.data.data || [];
+          setProjects(projectData);
         } catch (err) {
-          // Team might not be loaded yet
+          console.error("Failed to load projects:", err);
+          setError("Failed to load projects. Please refresh the page.");
+          setProjects([]);
+          setTasks([]);
+          setLoading(false);
+          return;
         }
 
-        // For admins, fetch invite code
+        // Load tasks for all projects - use Promise.allSettled to handle individual failures
+        if (projectData.length > 0) {
+          try {
+            const taskResponses = await Promise.allSettled(
+              projectData.map((project) => api.get(`/tasks/${project._id}`))
+            );
+            
+            const allTasks = taskResponses
+              .filter((result) => result.status === "fulfilled")
+              .flatMap((result) => result.value.data.data.tasks || []);
+            
+            setTasks(allTasks);
+          } catch (err) {
+            console.error("Error loading tasks:", err);
+            setTasks([]);
+          }
+        } else {
+          setTasks([]);
+        }
+
+        // Fetch team info - non-blocking
+        try {
+          const teamResponse = await api.get("/teams");
+          setTeam(teamResponse.data.data?.team || null);
+        } catch (err) {
+          console.error("Failed to load team info:", err);
+          setTeam(null);
+        }
+
+        // For admins, fetch invite code - non-blocking
         if (user?.role === "admin") {
           try {
             const codeResponse = await api.get("/teams/invite-code");
-            setInviteCode(codeResponse.data.data.inviteCode);
+            setInviteCode(codeResponse.data.data?.inviteCode || "");
           } catch (err) {
-            // Invite code might not be available
+            console.error("Failed to load invite code:", err);
+            setInviteCode("");
           }
         }
       } catch (err) {
-        setError(err.message);
+        console.error("Dashboard load error:", err);
+        setError(err.message || "Failed to load dashboard");
       } finally {
         setLoading(false);
       }
