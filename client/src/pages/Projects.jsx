@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import ProjectCard from "../components/ProjectCard";
 import StateMessage from "../components/StateMessage";
 import MembersSection from "../components/MembersSection";
@@ -16,6 +17,7 @@ const filterOptions = [
 
 export default function Projects() {
   const { user } = useAuth();
+  const location = useLocation();
   const filterRef = useRef(null);
   const [projects, setProjects] = useState([]);
   const [filteredProjects, setFilteredProjects] = useState([]);
@@ -32,6 +34,13 @@ export default function Projects() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
+
+  // Auto-open modal if navigated from sidebar
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setModalOpen(true);
+    }
+  }, [location.state]);
 
   // Handle click outside dropdown
   useEffect(() => {

@@ -19,7 +19,6 @@ export default function TaskBoard() {
   const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [teamMembers, setTeamMembers] = useState([]);
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -33,15 +32,11 @@ export default function TaskBoard() {
   const loadTasks = async () => {
     try {
       setLoading(true);
-      const [tasksResponse, membersResponse] = await Promise.all([
-        api.get(`/tasks/${projectId}`),
-        api.get("/teams/members")
-      ]);
+      const tasksResponse = await api.get(`/tasks/${projectId}`);
       
       setProject(tasksResponse.data.data.project);
       setTasks(tasksResponse.data.data.tasks);
       setProgress(tasksResponse.data.data.progress);
-      setTeamMembers(membersResponse.data.data.members || []);
       setError("");
     } catch (err) {
       setError(err.message);
@@ -159,28 +154,26 @@ export default function TaskBoard() {
 
       {progress && (
         <div className="mb-xl grid grid-cols-1 gap-md rounded-xl border border-outline-variant bg-white p-lg md:grid-cols-4">
-          <div>
-            <p className="text-label-sm text-on-surface-variant">Total Tasks</p>
+          <div className="flex flex-col">
+            <p className="text-label-sm font-semibold text-on-surface-variant mb-md">Total Tasks</p>
             <p className="text-h3 font-h3 text-on-surface">{progress.totalTasks}</p>
           </div>
-          <div>
-            <p className="text-label-sm text-on-surface-variant">Completed</p>
+          <div className="flex flex-col">
+            <p className="text-label-sm font-semibold text-on-surface-variant mb-md">Completed</p>
             <p className="text-h3 font-h3 text-green-600">{progress.completedTasks}</p>
           </div>
-          <div>
-            <p className="text-label-sm text-on-surface-variant">In Progress</p>
+          <div className="flex flex-col">
+            <p className="text-label-sm font-semibold text-on-surface-variant mb-md">In Progress</p>
             <p className="text-h3 font-h3 text-blue-600">{progress.inProgressTasks}</p>
           </div>
-          <div>
-            <p className="text-label-sm text-on-surface-variant">To Do</p>
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-h3 font-h3 text-slate-600">{progress.todoTasks}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-label-sm text-on-surface-variant">Progress</p>
-                <p className="text-h2 font-h2 text-primary">{progress.percentage}%</p>
-              </div>
+          <div className="flex flex-col justify-between">
+            <div>
+              <p className="text-label-sm font-semibold text-on-surface-variant mb-md">To Do</p>
+              <p className="text-h3 font-h3 text-slate-600">{progress.todoTasks}</p>
+            </div>
+            <div className="mt-md border-t border-outline-variant pt-md">
+              <p className="text-label-sm font-semibold text-on-surface-variant mb-xs">Progress</p>
+              <p className="text-h2 font-h2 text-primary">{progress.percentage}%</p>
             </div>
           </div>
         </div>
@@ -310,9 +303,10 @@ export default function TaskBoard() {
                     required
                     disabled={user?.role === "member"}
                   >
-                    <option value="">{user?.role === "admin" ? "Select a team member" : "Assign to me"}</option>
+                    <option value="">{user?.role === "admin" ? "Select a project member" : "Assign to me"}</option>
                     {user?.role === "admin" ? (
-                      teamMembers.map((member) => (
+                      // Show ONLY project members, not all team members
+                      (project?.members || []).map((member) => (
                         <option key={member._id} value={member._id}>
                           {member.name} {member._id === user?._id ? "(You)" : ""}
                         </option>

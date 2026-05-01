@@ -45,9 +45,9 @@ export default function Sidebar() {
       </nav>
       <div className="px-6 py-4">
         <button
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 font-semibold text-white transition-all hover:bg-primary-container"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 font-semibold text-white transition-all hover:bg-primary-container active:scale-95"
           type="button"
-          onClick={() => navigate("/projects")}
+          onClick={() => navigate("/projects", { state: { openModal: true } })}
         >
           <span className="material-symbols-outlined text-sm">add</span>
           New Project

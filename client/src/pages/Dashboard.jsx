@@ -116,7 +116,7 @@ export default function Dashboard() {
         {statCards.map((card) => (
           <div
             key={card.key}
-            className={`rounded-xl border-2 bg-white p-lg transition-all hover:shadow-xl hover:scale-[1.02] cursor-pointer ${
+            className={`flex flex-col justify-between rounded-xl border-2 bg-white p-lg transition-all hover:shadow-xl hover:scale-[1.02] cursor-pointer h-full ${
               card.key === "overdue" 
                 ? "border-error bg-error-container/5" 
                 : card.key === "completed"
@@ -126,13 +126,13 @@ export default function Dashboard() {
                 : "border-primary"
             }`}
           >
-            <div className="mb-sm flex items-start justify-between">
+            <div className="mb-md flex items-start justify-between">
               <span className={`text-label-md font-semibold ${
                 card.key === "overdue" ? "text-error" : "text-on-surface-variant"
               }`}>
                 {card.label}
               </span>
-              <span className={`material-symbols-outlined text-2xl ${
+              <span className={`material-symbols-outlined text-2xl flex-shrink-0 ${
                 card.key === "overdue" ? "text-error" : 
                 card.key === "completed" ? "text-emerald-600" :
                 card.key === "pending" ? "text-amber-600" :
@@ -148,6 +148,10 @@ export default function Dashboard() {
               "text-primary"
             }`}>
               {stats[card.key]}
+            </div>
+          </div>
+        ))}
+      </div>
             </div>
             <div className={`mt-xs text-label-sm font-medium ${
               card.key === "overdue" ? "text-error" : "text-on-surface-variant"
